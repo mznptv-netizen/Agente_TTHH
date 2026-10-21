@@ -5,7 +5,7 @@ from huggingface_hub import InferenceClient
 import pywhatkit as kit
 
 # 1. PEGA AQUÍ TU TOKEN DE HUGGING FACE (EMPEZANDO CON hf_...)
-HUGGINGFACE_API_KEY = "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"
+HUGGINGFACE_API_KEY = "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"
 
 # 2. NÚMERO DE WHATSAPP CON CÓDIGO DE PAÍS (Ej: "+573001234567")
 NUMERO_WHATSAPP = "+573102249777"
