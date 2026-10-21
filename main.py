@@ -4,10 +4,10 @@ import sqlite3
 from google import genai
 import pywhatkit as kit
 
-# 1. PEGA AQUÍ TU API KEY DE GOOGLE AI STUDIO
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6K5xK3Fe8hQa_U1XSDJYYBQat9QFshIqUGontjBHnqC3A")
+# 1. PEGA AQUÍ TU CLAVE DE API COMPLETA (EMPEZANDO CON AQ...)
+GEMINI_API_KEY = "AQ.Ab8RN6LvQumLwD21ONOJFHbZvK3Y86kDUlgrePZ_nB85Qyg5BA."  # Reemplaza con tu clave completa
 
-# 2. PEGA AQUÍ EL NÚMERO DE WHATSAPP DESTINO (Ejemplo: "+573001234567")
+# 2. PEGA AQUÍ TU NÚMERO DE WHATSAPP CON CÓDIGO DE PAÍS (Ej: "+573001234567")
 NUMERO_WHATSAPP = "+573102249777"
 
 
@@ -120,7 +120,7 @@ def consultar_empleados_bd():
 
 
 def consultar_a_valeria(pregunta_usuario):
-  """Envía la pregunta a Gemini combinando empleados, memoria e identidad de Valeria."""
+  """Envía la pregunta a Gemini pasando la clave y combinando empleados y memoria."""
   columnas, datos = consultar_empleados_bd()
   memoria = obtener_historial_memoria(limite=10)
 
@@ -146,6 +146,7 @@ def consultar_a_valeria(pregunta_usuario):
 
   guardar_en_memoria("Usuario", pregunta_usuario)
 
+  # Inicialización directa del cliente con la clave de API
   client = genai.Client(api_key=GEMINI_API_KEY)
   respuesta = client.models.generate_content(
       model="gemini-2.5-flash", contents=prompt
