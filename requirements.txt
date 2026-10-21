@@ -2,3 +2,4 @@ pandas
 openpyxl
 google-genai
 pywhatkit
+openai
