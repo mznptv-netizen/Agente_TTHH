@@ -1,30 +1,25 @@
 import datetime
 import os
 import sqlite3
-from google import genai
+from huggingface_hub import InferenceClient
 import pywhatkit as kit
 
-# 1. PEGA AQUÍ TU CLAVE DE API COMPLETA (EMPEZANDO CON AQ...)
-GEMINI_API_KEY = "AQ.Ab8RN6LvQumLwD21ONOJFHbZvK3Y86kDUlgrePZ_nB85Qyg5BA."  # Reemplaza con tu clave completa
+# 1. PEGA AQUÍ TU TOKEN DE HUGGING FACE (EMPEZANDO CON hf_...)
+HUGGINGFACE_API_KEY = "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"
 
-# 2. PEGA AQUÍ TU NÚMERO DE WHATSAPP CON CÓDIGO DE PAÍS (Ej: "+573001234567")
+# 2. NÚMERO DE WHATSAPP CON CÓDIGO DE PAÍS (Ej: "+573001234567")
 NUMERO_WHATSAPP = "+573102249777"
 
 
 def obtener_rutas():
   """Define y crea la carpeta propia de Valeria y las rutas de BD."""
   local_appdata = os.getenv("LOCALAPPDATA")
-
-  # Ruta base de IPSICOL
   ruta_ipsicol = os.path.join(local_appdata, "IPSICOL", "TalentoHumano")
-
-  # Carpeta dedicada exclusivamente a la memoria y archivos de Valeria
   carpeta_valeria = os.path.join(ruta_ipsicol, "AgenteValeria")
 
   if not os.path.exists(carpeta_valeria):
     os.makedirs(carpeta_valeria, exist_ok=True)
 
-  # Ruta de la base de datos de empleados y la memoria de Valeria
   ruta_bd_empleados = os.path.join(ruta_ipsicol, "talento_humano.db")
   ruta_bd_memoria = os.path.join(carpeta_valeria, "memoria_valeria.db")
 
@@ -101,7 +96,7 @@ def consultar_empleados_bd():
   ruta_bd_empleados, _ = obtener_rutas()
   if not os.path.exists(ruta_bd_empleados):
     return (
-        None,
+        [],
         f"No se encontró el archivo 'talento_humano.db' en {ruta_bd_empleados}",
     )
 
@@ -116,23 +111,29 @@ def consultar_empleados_bd():
     conexion.close()
     return columnas, filas
   except Exception as e:
-    return None, f"Error al leer empleados: {e}"
+    return [], f"Error al leer empleados: {e}"
 
 
 def consultar_a_valeria(pregunta_usuario):
-  """Envía la pregunta a Gemini pasando la clave y combinando empleados y memoria."""
+  """Envía la pregunta a Hugging Face usando InferenceClient."""
   columnas, datos = consultar_empleados_bd()
   memoria = obtener_historial_memoria(limite=10)
 
-  texto_datos = f"Columnas: {columnas}\nRegistros:\n"
-  if datos and isinstance(datos, list):
+  if isinstance(datos, list) and datos:
+    texto_datos = f"Columnas: {columnas}\nRegistros:\n"
     for fila in datos:
       texto_datos += f"{fila}\n"
+  elif isinstance(datos, str):
+    texto_datos = f"Estado de la BD: {datos}"
+  else:
+    texto_datos = "La base de datos está vacía o no tiene registros."
 
-  prompt = f"""
+  prompt_sistema = """
     Eres Valeria, la Agente de Inteligencia Artificial del departamento de Talento Humano de IPSICOL.
-    Tu labor es orientar, responder preguntas y alertar sobre la gestión del personal.
+    Tu labor es orientar, responder preguntas y alertar sobre la gestión del personal de forma profesional, directa y formal.
+    """
 
+  prompt_usuario = """
     INFORMACIÓN ACTUAL DE EMPLEADOS DE IPSICOL:
     {texto_datos}
 
@@ -140,20 +141,26 @@ def consultar_a_valeria(pregunta_usuario):
     {memoria}
 
     NUEVA CONSULTA DEL USUARIO: "{pregunta_usuario}"
-
-    Responde de forma profesional, directa y formal.
     """
 
   guardar_en_memoria("Usuario", pregunta_usuario)
 
-  # Inicialización directa del cliente con la clave de API
-  client = genai.Client(api_key=GEMINI_API_KEY)
-  respuesta = client.models.generate_content(
-      model="gemini-2.5-flash", contents=prompt
+  # Cliente de Hugging Face
+  client = InferenceClient(api_key=HUGGINGFACE_API_KEY)
+
+  # Usamos un modelo robusto y gratuito de código abierto
+  response = client.chat.completions.create(
+      model="mistralai/Mistral-7B-Instruct-v0.3",
+      messages=[
+          {"role": "system", "content": prompt_sistema},
+          {"role": "user", "content": prompt_usuario},
+      ],
+      max_tokens=500,
   )
 
-  guardar_en_memoria("Valeria", respuesta.text)
-  return respuesta.text
+  respuesta_texto = response.choices[0].message.content
+  guardar_en_memoria("Valeria", respuesta_texto)
+  return respuesta_texto
 
 
 def enviar_presentacion_whatsapp():
@@ -196,10 +203,8 @@ if __name__ == "__main__":
   print("   🤖 VALERIA - AGENTE TALENTO HUMANO (IPSICOL)  ")
   print("==================================================")
 
-  # Enviar la presentación oficial por WhatsApp al iniciar
   enviar_presentacion_whatsapp()
 
-  # Modo chat interactivo continuo con memoria
   print("\n--- CHAT ACTIVO CON VALERIA (Escribe 'salir' para finalizar) ---")
   while True:
     pregunta = input("\n🧑‍💼 Tú: ").strip()
