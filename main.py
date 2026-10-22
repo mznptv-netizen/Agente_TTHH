@@ -1,14 +1,20 @@
 import datetime
 import os
 import sqlite3
-from huggingface_hub import InferenceClient
+from openai import OpenAI
 import pywhatkit as kit
 
-# 1. PEGA AQUÍ TU TOKEN DE HUGGING FACE (EMPEZANDO CON hf_...)
-HUGGINGFACE_API_KEY = "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"
+# ==============================================================================
+# CONFIGURACIÓN DEL AGENTE VALERIA
+# ==============================================================================
+
+# 1. PEGA AQUÍ TU CLAVE COMPLETA DE NVIDIA (Comienza por nvapi-...)
+NVIDIA_API_KEY = "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"
 
 # 2. NÚMERO DE WHATSAPP CON CÓDIGO DE PAÍS (Ej: "+573001234567")
-NUMERO_WHATSAPP = "+573102249777"
+NUMERO_WHATSAPP = "+573194160001"
+
+# ==============================================================================
 
 
 def obtener_rutas():
@@ -115,7 +121,7 @@ def consultar_empleados_bd():
 
 
 def consultar_a_valeria(pregunta_usuario):
-  """Envía la pregunta a Hugging Face usando InferenceClient."""
+  """Envía la pregunta a la API de NVIDIA conectando con DeepSeek."""
   columnas, datos = consultar_empleados_bd()
   memoria = obtener_historial_memoria(limite=10)
 
@@ -145,17 +151,20 @@ def consultar_a_valeria(pregunta_usuario):
 
   guardar_en_memoria("Usuario", pregunta_usuario)
 
-  # Cliente de Hugging Face
-  client = InferenceClient(api_key=HUGGINGFACE_API_KEY)
+  # Cliente de conexión oficial con NVIDIA NIM
+  client = OpenAI(
+      base_url="https://integrate.api.nvidia.com/v1", api_key=NVIDIA_API_KEY
+  )
 
-  # Usamos un modelo robusto y gratuito de código abierto
   response = client.chat.completions.create(
-      model="mistralai/Mistral-7B-Instruct-v0.3",
+      model="deepseek-ai/deepseek-r1",
       messages=[
           {"role": "system", "content": prompt_sistema},
           {"role": "user", "content": prompt_usuario},
       ],
-      max_tokens=500,
+      temperature=0.6,
+      top_p=0.7,
+      max_tokens=4096,
   )
 
   respuesta_texto = response.choices[0].message.content
