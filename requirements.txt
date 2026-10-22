@@ -1,5 +1,2 @@
-pandas
-openpyxl
-google-genai
-huggingface_hub
+openai
 pywhatkit
